@@ -5,8 +5,8 @@ from docx import Document
 import tempfile
 import os
 
-# ✅ Load API key securely
-openai.api_key = st.secrets["OPENROUTER_API_KEY"]
+# ✅ Load API key securely, fallback if not set
+openai.api_key = st.secrets.get("OPENROUTER_API_KEY", "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")
 openai.api_base = "https://openrouter.ai/api/v1"
 
 st.set_page_config(page_title="Task 3 - Insurance Template Filler")
