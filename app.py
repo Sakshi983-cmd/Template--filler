@@ -7,15 +7,15 @@ import os
 
 # ✅ Load OpenRouter API Key & Base
 openai.api_key = st.secrets.get("api", {}).get("openrouter_key", "")
-openai.api_base = "https://openrouter.ai/api/v1"  # ✅ Important for OpenRouter
+openai.api_base = "https://openrouter.ai/api/v1"  # ✅ Required for OpenRouter
 
-# 🔍 Debug: Check if key loaded
+# 🔍 Check if API key loaded
 if not openai.api_key:
     st.error("❌ API key not loaded properly.")
 else:
-    st.success("✅ API key loaded.")
+    st.success("✅ OpenRouter API key loaded.")
 
-# 🎯 Page config
+# 🎯 Page setup
 st.set_page_config(page_title="Task 3 - Insurance Template Filler")
 st.title("📄 Insurance Template Auto-Filler using PDF + LLM")
 
@@ -36,7 +36,7 @@ def extract_text_from_pdfs(files):
         doc.close()
     return text
 
-# 🤖 Call OpenRouter LLM to fill template
+# 🤖 Fill template using OpenRouter LLM
 def fill_template_with_llm(template_text, pdf_text):
     prompt = f"""You are an AI assistant. Fill the insurance template using the PDF content below:
 
@@ -49,13 +49,13 @@ Template:
 Return the filled template:"""
 
     response = openai.chat.completions.create(
-        model="mistral-7b-instruct",  # ✅ Or use another available OpenRouter model
+        model="mistralai/mistral-7b-instruct",  # ✅ Correct OpenRouter model
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3
     )
     return response.choices[0].message.content
 
-# 🔄 Generate and fill template
+# 🔄 Main flow
 if st.button("Generate Filled Template") and template_file and pdf_files:
     st.info("📤 Extracting text from PDFs...")
     pdf_text = extract_text_from_pdfs(pdf_files)
@@ -65,7 +65,11 @@ if st.button("Generate Filled Template") and template_file and pdf_files:
     template_text = "\n".join([p.text for p in doc.paragraphs])
 
     st.info("🧠 Calling LLM to generate filled content...")
-    filled_output = fill_template_with_llm(template_text, pdf_text)
+    try:
+        filled_output = fill_template_with_llm(template_text, pdf_text)
+    except Exception as e:
+        st.error(f"❌ LLM Error: {str(e)}")
+        st.stop()
 
     st.success("✅ Template filled successfully!")
 
