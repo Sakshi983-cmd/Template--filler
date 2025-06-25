@@ -5,7 +5,9 @@ from docx import Document
 import tempfile
 import os
 
-
+# ✅ Load API key securely, fallback if secrets not set
+openai.api_key = st.secrets.get("OPENROUTER_API_KEY", "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")
+openai.api_base = "https://openrouter.ai/api/v1"
 
 st.set_page_config(page_title="Task 3 - Insurance Template Filler")
 st.title("📄 Insurance Template Auto-Filler using PDF + LLM")
@@ -27,7 +29,7 @@ def extract_text_from_pdfs(files):
         doc.close()
     return text
 
-# ✅ Function to call LLM and fill the template
+# ✅ Function to call LLM and fill the template (UPDATED for SDK v1+)
 def fill_template_with_llm(template_text, pdf_text):
     prompt = f"""You are an AI assistant. Fill the insurance template using the PDF content below:
 
@@ -39,12 +41,12 @@ Template:
 
 Return the filled template:
 """
-    response = openai.ChatCompletion.create(
+    response = openai.chat.completions.create(
         model="mistral-7b-instruct",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3
     )
-    return response["choices"][0]["message"]["content"]
+    return response.choices[0].message.content
 
 # ✅ When user clicks "Generate"
 if st.button("Generate Filled Template") and template_file and pdf_files:
@@ -69,3 +71,4 @@ if st.button("Generate Filled Template") and template_file and pdf_files:
 
     with open(output_path, "rb") as f:
         st.download_button("⬇️ Download Filled Template", f, file_name="filled_template.docx")
+
