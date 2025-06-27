@@ -5,19 +5,28 @@ from docx import Document
 import tempfile
 import os
 
-# ✅ Load OpenRouter API Key & Base
-openai.api_key = st.secrets.get("api", {}).get("openrouter_key", "")
-openai.api_base = "https://openrouter.ai/api/v1"  # ✅ Required for OpenRouter
+# ✅ Load OpenRouter API Key and Base URL
+api_key = st.secrets.get("api", {}).get("openrouter_key", "")
+openai.api_key = api_key
+openai.api_base = "https://openrouter.ai/api/v1"  # Required for OpenRouter
 
-# 🔍 Check if API key loaded
-if not openai.api_key:
-    st.error("❌ API key not loaded properly.")
+# 🔍 Check API key
+if not api_key or not api_key.startswith("sk-or-v1-"):
+    st.error("❌ API key not loaded or invalid. Please check your Streamlit Secrets.")
+    st.stop()
 else:
     st.success("✅ OpenRouter API key loaded.")
 
-# 🎯 Page setup
-st.set_page_config(page_title="Task 3 - Insurance Template Filler")
+# 🎯 Page config
+st.set_page_config(page_title="Task 3 - Insurance Template Filler", layout="centered")
 st.title("📄 Insurance Template Auto-Filler using PDF + LLM")
+
+# 🤖 Choose Model (Optional)
+model_choice = st.selectbox(
+    "🤖 Choose LLM Model",
+    ["mistralai/mistral-7b-instruct", "meta-llama/llama-3-8b-instruct", "openai/gpt-3.5-turbo"],
+    index=0
+)
 
 # 📤 Upload Inputs
 template_file = st.file_uploader("Upload Insurance Template (.docx)", type="docx")
@@ -36,8 +45,8 @@ def extract_text_from_pdfs(files):
         doc.close()
     return text
 
-# 🤖 Fill template using OpenRouter LLM
-def fill_template_with_llm(template_text, pdf_text):
+# 🤖 Call OpenRouter LLM to fill template
+def fill_template_with_llm(template_text, pdf_text, model):
     prompt = f"""You are an AI assistant. Fill the insurance template using the PDF content below:
 
 PDF Content:
@@ -49,16 +58,19 @@ Template:
 Return the filled template:"""
 
     response = openai.chat.completions.create(
-        model="mistralai/mistral-7b-instruct",  # ✅ Correct OpenRouter model
+        model=model,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3
     )
     return response.choices[0].message.content
 
-# 🔄 Main flow
+# 🔄 Main Execution
 if st.button("Generate Filled Template") and template_file and pdf_files:
     st.info("📤 Extracting text from PDFs...")
     pdf_text = extract_text_from_pdfs(pdf_files)
+
+    with st.expander("📄 Preview Extracted PDF Text"):
+        st.text_area("Extracted Text", pdf_text[:2000], height=200)
 
     st.info("📄 Reading insurance template...")
     doc = Document(template_file)
@@ -66,7 +78,7 @@ if st.button("Generate Filled Template") and template_file and pdf_files:
 
     st.info("🧠 Calling LLM to generate filled content...")
     try:
-        filled_output = fill_template_with_llm(template_text, pdf_text)
+        filled_output = fill_template_with_llm(template_text, pdf_text, model_choice)
     except Exception as e:
         st.error(f"❌ LLM Error: {str(e)}")
         st.stop()
