@@ -1,32 +1,12 @@
 import streamlit as st
 import fitz  # PyMuPDF
-import openai
 from docx import Document
 import tempfile
 import os
 
-# ✅ Load OpenRouter API Key and Base URL
-api_key = st.secrets.get("api", {}).get("openrouter_key", "")
-openai.api_key = api_key
-openai.api_base = "https://openrouter.ai/api/v1"  # Required for OpenRouter
-
-# 🔍 Check API key
-if not api_key or not api_key.startswith("sk-or-v1-"):
-    st.error("❌ API key not loaded or invalid. Please check your Streamlit Secrets.")
-    st.stop()
-else:
-    st.success("✅ OpenRouter API key loaded.")
-
-# 🎯 Page config
+# 🎯 Page setup
 st.set_page_config(page_title="Task 3 - Insurance Template Filler", layout="centered")
-st.title("📄 Insurance Template Auto-Filler using PDF + LLM")
-
-# 🤖 Choose Model (Optional)
-model_choice = st.selectbox(
-    "🤖 Choose LLM Model",
-    ["mistralai/mistral-7b-instruct", "meta-llama/llama-3-8b-instruct", "openai/gpt-3.5-turbo"],
-    index=0
-)
+st.title("📄 Insurance Template Auto-Filler using PDF + Mock LLM")
 
 # 📤 Upload Inputs
 template_file = st.file_uploader("Upload Insurance Template (.docx)", type="docx")
@@ -45,24 +25,21 @@ def extract_text_from_pdfs(files):
         doc.close()
     return text
 
-# 🤖 Call OpenRouter LLM to fill template
-def fill_template_with_llm(template_text, pdf_text, model):
-    prompt = f"""You are an AI assistant. Fill the insurance template using the PDF content below:
+# 🤖 Mock LLM to fill template (no API needed)
+def fill_template_with_llm(template_text, pdf_text):
+    return f"""📋 Auto-Filled Insurance Report
 
-PDF Content:
-{pdf_text}
+PDF Extract Preview:
+{pdf_text[:300]}...
 
-Template:
-{template_text}
+Identified Issues:
+- Roof leakage
+- Ceiling staining
+- Wall cracks and paint damage
 
-Return the filled template:"""
-
-    response = openai.chat.completions.create(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3
-    )
-    return response.choices[0].message.content
+Recommendation:
+Immediate repair recommended. Insurance claim approved for structural damage.
+"""
 
 # 🔄 Main Execution
 if st.button("Generate Filled Template") and template_file and pdf_files:
@@ -76,12 +53,8 @@ if st.button("Generate Filled Template") and template_file and pdf_files:
     doc = Document(template_file)
     template_text = "\n".join([p.text for p in doc.paragraphs])
 
-    st.info("🧠 Calling LLM to generate filled content...")
-    try:
-        filled_output = fill_template_with_llm(template_text, pdf_text, model_choice)
-    except Exception as e:
-        st.error(f"❌ LLM Error: {str(e)}")
-        st.stop()
+    st.info("🧠 Mocking LLM response...")
+    filled_output = fill_template_with_llm(template_text, pdf_text)
 
     st.success("✅ Template filled successfully!")
 
